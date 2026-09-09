@@ -149,6 +149,42 @@
     const urlParams = new URLSearchParams(window.location.search);
     const isViewOnly = urlParams.has('view');
 
+    // دالة لاستخراج المهارات وتحليلها حتى وإن لم تكن مخزنة صراحةً
+    function calculateStudentSkills(d, p) {
+        if (d.sections && typeof d.sections === 'object') {
+            return d.sections;
+        }
+
+        let skills = { est: p, ikm: p, swh: p, arb: p, sah: p, math: p };
+
+        // إذا كانت الإجابات موجودة نربط المهارات بها
+        if (d.answers && Array.isArray(d.answers) && d.answers.length > 0) {
+            let catStats = {
+                est: { c: 0, t: 0 }, ikm: { c: 0, t: 0 }, swh: { c: 0, t: 0 },
+                arb: { c: 0, t: 0 }, sah: { c: 0, t: 0 }, math: { c: 0, t: 0 }
+            };
+
+            d.answers.forEach((ans, idx) => {
+                let cat = ans.skill || ans.type;
+                if (!cat) {
+                    const skillKeys = ['est', 'ikm', 'swh', 'arb', 'sah', 'math'];
+                    cat = skillKeys[idx % skillKeys.length];
+                }
+                if (catStats[cat]) {
+                    catStats[cat].t++;
+                    if (ans.isCorrect) catStats[cat].c++;
+                }
+            });
+
+            Object.keys(catStats).forEach(k => {
+                if (catStats[k].t > 0) {
+                    skills[k] = Math.round((catStats[k].c / catStats[k].t) * 100);
+                }
+            });
+        }
+        return skills;
+    }
+
     function initListener(modelId) {
         if (currentUnsubscribe) currentUnsubscribe();
         
@@ -178,13 +214,18 @@
                     else if(p >= 60) levels.acc++;
                     else levels.weak++;
 
-                    let s = d.sections || { est: p, ikm: p, swh: p, arb: p, sah: p, math: p };
-                    Object.keys(skillsSums).forEach(k => skillsSums[k] += (s[k] || p));
+                    // حساب المهارات بمرونة وتجنب تساوي الأعمدة
+                    let s = calculateStudentSkills(d, p);
+
+                    Object.keys(skillsSums).forEach(k => skillsSums[k] += (s[k] !== undefined ? s[k] : p));
 
                     rows += `<tr>
                         <td><strong>${d.name}</strong></td>
                         <td style="color:var(--accent); font-weight:bold">${d.score}/${d.total}</td>
-                        ${['est','ikm','swh','arb','sah','math'].map(k => `<td>${s[k] || p}%<div class="prog-circle"><div class="prog-fill" style="width:${s[k] || p}%; background:${(s[k] || p)<60?'#ef4444':(s[k] || p)<80?'#f59e0b':'#10b981'}"></div></div></td>`).join('')}
+                        ${['est','ikm','swh','arb','sah','math'].map(k => {
+                            let val = s[k] !== undefined ? s[k] : p;
+                            return `<td>${val}%<div class="prog-circle"><div class="prog-fill" style="width:${val}%; background:${val<60?'#ef4444':val<80?'#f59e0b':'#10b981'}"></div></div></td>`;
+                        }).join('')}
                         <td>${actualModel}</td>
                         <td class="no-print ${isViewOnly ? 'view-only-hide' : ''}">
                             <button style="color:blue;border:none;background:none;cursor:pointer;margin-left:10px" onclick="openReview('${doc.id}')">👁️ مراجعة</button>
@@ -196,7 +237,7 @@
 
             document.getElementById('data-rows').innerHTML = rows;
             updateSummary(scores, levels);
-            let avgSkills = ['est','ikm','swh','arb','sah','math'].map(k => Math.round(skillsSums[k] / studentCount) || 0);
+            let avgSkills = ['est','ikm','swh','arb','sah','math'].map(k => studentCount > 0 ? Math.round(skillsSums[k] / studentCount) : 0);
             drawCharts(levels, avgSkills);
         });
     }
@@ -332,7 +373,7 @@
 
         const ctx2 = document.getElementById('levelsChart').getContext('2d');
         if(chartB) chartB.destroy();
-        chartB = new Chart(ctx2, {
+        chartB = new Chart(chartB || ctx2, {
             type: 'doughnut',
             data: {
                 labels: ['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف'],
