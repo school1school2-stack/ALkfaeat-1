@@ -75,16 +75,16 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 0.88rem;
-            padding: 4px 8px;
-            border-radius: 6px;
-            transition: background 0.2s;
+            padding: 5px 10px;
+            border-radius: 8px;
+            transition: all 0.2s;
         }
-        .btn-level { color: #0284c7; background: #e0f2fe; }
-        .btn-level:hover { background: #bae6fd; }
-        .btn-review { color: #16a34a; background: #dcfce7; margin-left: 5px; }
-        .btn-review:hover { background: #bbf7d0; }
-        .btn-delete { color: #dc2626; background: #fee2e2; }
-        .btn-delete:hover { background: #fecaca; }
+        .btn-level { color: #0284c7; background: #e0f2fe; border: 1px solid #bae6fd; }
+        .btn-level:hover { background: #0284c7; color: white; }
+        .btn-review { color: #16a34a; background: #dcfce7; border: 1px solid #bbf7d0; margin-left: 5px; }
+        .btn-review:hover { background: #16a34a; color: white; }
+        .btn-delete { color: #dc2626; background: #fee2e2; border: 1px solid #fecaca; }
+        .btn-delete:hover { background: #dc2626; color: white; }
 
         /* النوافذ المنبثقة */
         #qr-modal, #review-modal, #student-report-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
@@ -108,7 +108,7 @@
         .trend-down { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
         .trend-flat { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
 
-        .report-chart-box { height: 260px; margin: 15px 0; border: 1px solid var(--border); border-radius: 15px; padding: 15px; }
+        .report-chart-box { position: relative; height: 280px; margin: 15px 0; border: 1px solid var(--border); border-radius: 15px; padding: 15px; background: #fafafa; }
 
         .close-btn { background: var(--text-main); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; margin-top: 15px; }
         .view-only-hide { display: none !important; }
@@ -219,9 +219,9 @@
             <table style="width:100%; border:1px solid var(--border); font-size:0.85rem;" id="student-models-table">
                 <thead>
                     <tr style="background:#f1f5f9;">
-                        <th style="padding:8px;">النموذج</th>
-                        <th style="padding:8px;">الدرجة</th>
-                        <th style="padding:8px;">النسبة</th>
+                        <th style="padding:8px; text-align:right;">النموذج</th>
+                        <th style="padding:8px; text-align:center;">الدرجة</th>
+                        <th style="padding:8px; text-align:center;">النسبة والتصنيف</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -368,7 +368,15 @@
         }
     }
 
-    // دالة فتح تقرير الطالب المخصص
+    function getGradeText(pct) {
+        if(pct >= 90) return { text: "ممتاز 🟢", color: "#166534" };
+        if(pct >= 80) return { text: "جيد جداً 🔵", color: "#0284c7" };
+        if(pct >= 70) return { text: "جيد 🟡", color: "#b45309" };
+        if(pct >= 60) return { text: "مقبول 🟠", color: "#d97706" };
+        return { text: "ضعيف 🔴", color: "#dc2626" };
+    }
+
+    // دالة فتح تقرير الطالب المخصص المطور
     function openStudentReport(studentName) {
         document.getElementById('report-student-name').innerText = `👤 تقرير أداء الطالب: ${studentName}`;
         
@@ -383,14 +391,16 @@
         studentRecords.forEach(rec => {
             let mName = rec.model_id || 'الجملة الاسمية';
             let pct = Math.round((rec.score / rec.total) * 100);
+            let grade = getGradeText(pct);
+            
             labels.push(mName);
             percentages.push(pct);
 
             tableRowsHtml += `
                 <tr>
-                    <td style="padding:8px; border-bottom:1px solid #eee;"><b>${mName}</b></td>
-                    <td style="padding:8px; border-bottom:1px solid #eee; color:var(--accent); font-weight:bold;">${rec.score} من ${rec.total}</td>
-                    <td style="padding:8px; border-bottom:1px solid #eee;">${pct}%</td>
+                    <td style="padding:10px; border-bottom:1px solid #eee; text-align:right;"><b>${mName}</b></td>
+                    <td style="padding:10px; border-bottom:1px solid #eee; text-align:center; color:var(--accent); font-weight:bold;">${rec.score} من ${rec.total}</td>
+                    <td style="padding:10px; border-bottom:1px solid #eee; text-align:center;"><span style="font-weight:bold; color:${grade.color};">${pct}% (${grade.text})</span></td>
                 </tr>
             `;
         });
@@ -414,37 +424,43 @@
             indicatorBox.innerHTML = `<span class="trend-badge trend-flat">📌 اختبر النموذج الأول فقط (بانتظار أدائه في النماذج القادمة)</span>`;
         }
 
-        const ctxLine = document.getElementById('studentProgressChart').getContext('2d');
-        if (studentLineChart) studentLineChart.destroy();
-
-        studentLineChart = new Chart(ctxLine, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'نسبة الإنجاز %',
-                    data: percentages,
-                    borderColor: '#0284c7',
-                    backgroundColor: 'rgba(2, 132, 199, 0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 6,
-                    pointBackgroundColor: '#0284c7'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }
-                },
-                plugins: {
-                    title: { display: true, text: 'مسار تقدم الطالب من نموذج لآخر' }
-                }
-            }
-        });
-
+        // إظهار النافذة أولاً لتهيئة مساحة الـ Canvas
         document.getElementById('student-report-modal').style.display = 'flex';
+
+        // رسم منحنى التقدم التراكمي للرسومات البيانية
+        setTimeout(() => {
+            const ctxLine = document.getElementById('studentProgressChart').getContext('2d');
+            if (studentLineChart) studentLineChart.destroy();
+
+            studentLineChart = new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'نسبة الإنجاز %',
+                        data: percentages,
+                        borderColor: '#0284c7',
+                        backgroundColor: 'rgba(2, 132, 199, 0.15)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#0284c7'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }
+                    },
+                    plugins: {
+                        legend: { display: true },
+                        title: { display: true, text: '📈 رسم بياني يتتبع تقدم مستوى الطالب عبر النماذج' }
+                    }
+                }
+            });
+        }, 50);
     }
 
     function updateRankings(students) {
