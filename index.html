@@ -338,8 +338,10 @@
             let displayList = [...globalSnapshotData].reverse();
 
             displayList.forEach(d => {
-                let actualModel = d.model_id || 'الجملة الاسمية';
-                if (modelId === 'all' || actualModel == modelId) {
+                let actualModel = d.model_id ? d.model_id.toString().trim() : 'الجملة الاسمية';
+                let targetModel = modelId ? modelId.toString().trim() : 'all';
+
+                if (targetModel === 'all' || actualModel === targetModel) {
                     const p = Math.round((d.score / d.total) * 100);
                     scores.push(p);
                     studentCount++;
@@ -414,8 +416,4 @@
         } else {
             return "غير مسجل";
         }
-        return dateObj.toLocaleString('ar-SA', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    }
-
-    function getNextTestTime(timeVal) {
-        if (!timeVal) retu
+        return dateObj.toLocaleString('ar-SA', { day: 'numeric', month: 'short', year: 'num
