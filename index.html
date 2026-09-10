@@ -208,7 +208,7 @@
         <h2 id="report-student-name" style="margin:0 0 5px 0; color:var(--accent);">تقرير أداء الطالب</h2>
         <div id="trend-indicator-box"></div>
 
-        <!-- الرسم البياني لتقدم المستوى عبر النماذج -->
+        <!-- الرسم البياني التفاعلي -->
         <div class="report-chart-box">
             <canvas id="studentProgressChart"></canvas>
         </div>
@@ -368,15 +368,15 @@
         }
     }
 
-    function getGradeText(pct) {
-        if(pct >= 90) return { text: "ممتاز 🟢", color: "#166534" };
-        if(pct >= 80) return { text: "جيد جداً 🔵", color: "#0284c7" };
-        if(pct >= 70) return { text: "جيد 🟡", color: "#b45309" };
-        if(pct >= 60) return { text: "مقبول 🟠", color: "#d97706" };
-        return { text: "ضعيف 🔴", color: "#dc2626" };
+    function getGradeInfo(pct) {
+        if(pct >= 90) return { text: "ممتاز 🟢", color: "#166534", bg: "#dcfce7" };
+        if(pct >= 80) return { text: "جيد جداً 🔵", color: "#0284c7", bg: "#e0f2fe" };
+        if(pct >= 70) return { text: "جيد 🟡", color: "#b45309", bg: "#fef3c7" };
+        if(pct >= 60) return { text: "مقبول 🟠", color: "#d97706", bg: "#ffedd5" };
+        return { text: "ضعيف 🔴", color: "#dc2626", bg: "#fee2e2" };
     }
 
-    // دالة فتح تقرير الطالب المخصص المطور
+    // دالة فتح تقرير الطالب التكيُّفية الذكية
     function openStudentReport(studentName) {
         document.getElementById('report-student-name').innerText = `👤 تقرير أداء الطالب: ${studentName}`;
         
@@ -386,21 +386,23 @@
 
         let labels = [];
         let percentages = [];
+        let barColors = [];
         let tableRowsHtml = "";
 
         studentRecords.forEach(rec => {
             let mName = rec.model_id || 'الجملة الاسمية';
             let pct = Math.round((rec.score / rec.total) * 100);
-            let grade = getGradeText(pct);
+            let grade = getGradeInfo(pct);
             
             labels.push(mName);
             percentages.push(pct);
+            barColors.push(grade.color);
 
             tableRowsHtml += `
                 <tr>
                     <td style="padding:10px; border-bottom:1px solid #eee; text-align:right;"><b>${mName}</b></td>
                     <td style="padding:10px; border-bottom:1px solid #eee; text-align:center; color:var(--accent); font-weight:bold;">${rec.score} من ${rec.total}</td>
-                    <td style="padding:10px; border-bottom:1px solid #eee; text-align:center;"><span style="font-weight:bold; color:${grade.color};">${pct}% (${grade.text})</span></td>
+                    <td style="padding:10px; border-bottom:1px solid #eee; text-align:center;"><span style="font-weight:bold; color:${grade.color}; padding:3px 8px; background:${grade.bg}; border-radius:12px;">${pct}% (${grade.text})</span></td>
                 </tr>
             `;
         });
@@ -421,45 +423,73 @@
                 indicatorBox.innerHTML = `<span class="trend-badge trend-flat">➖ مستوى ثابت بمتوسط ${lastScore}%</span>`;
             }
         } else {
-            indicatorBox.innerHTML = `<span class="trend-badge trend-flat">📌 اختبر النموذج الأول فقط (بانتظار أدائه في النماذج القادمة)</span>`;
+            let singleGrade = getGradeInfo(percentages[0]);
+            indicatorBox.innerHTML = `<span class="trend-badge" style="background:${singleGrade.bg}; color:${singleGrade.color};">📌 تصنيف المستوى: ${singleGrade.text} (بانتظار أدائه في النماذج القادمة)</span>`;
         }
 
-        // إظهار النافذة أولاً لتهيئة مساحة الـ Canvas
         document.getElementById('student-report-modal').style.display = 'flex';
 
-        // رسم منحنى التقدم التراكمي للرسومات البيانية
         setTimeout(() => {
-            const ctxLine = document.getElementById('studentProgressChart').getContext('2d');
+            const ctxChart = document.getElementById('studentProgressChart').getContext('2d');
             if (studentLineChart) studentLineChart.destroy();
 
-            studentLineChart = new Chart(ctxLine, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'نسبة الإنجاز %',
-                        data: percentages,
-                        borderColor: '#0284c7',
-                        backgroundColor: 'rgba(2, 132, 199, 0.15)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 6,
-                        pointHoverRadius: 8,
-                        pointBackgroundColor: '#0284c7'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }
+            // إذا كان لدى الطالب نموذج واحد فقط، نستخدم رسم العمود (Bar Chart) الأنيق
+            if (studentRecords.length === 1) {
+                studentLineChart = new Chart(ctxChart, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'نسبة الإنجاز %',
+                            data: percentages,
+                            backgroundColor: barColors,
+                            borderRadius: 10,
+                            barThickness: 50
+                        }]
                     },
-                    plugins: {
-                        legend: { display: true },
-                        title: { display: true, text: '📈 رسم بياني يتتبع تقدم مستوى الطالب عبر النماذج' }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            title: { display: true, text: '📊 مستوى أداء الطالب في النموذج الحالي' }
+                        }
                     }
-                }
-            });
+                });
+            } else {
+                // إذا كان اختبر أكثر من نموذج، نستخدم الرسم الخطي (Line Chart) لعرض منحنى التقدم
+                studentLineChart = new Chart(ctxChart, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'نسبة الإنجاز %',
+                            data: percentages,
+                            borderColor: '#0284c7',
+                            backgroundColor: 'rgba(2, 132, 199, 0.15)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: '#0284c7'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }
+                        },
+                        plugins: {
+                            legend: { display: true },
+                            title: { display: true, text: '📈 رسم بياني يتتبع تقدم مستوى الطالب عبر النماذج' }
+                        }
+                    }
+                });
+            }
         }, 50);
     }
 
