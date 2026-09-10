@@ -68,13 +68,47 @@
         .prog-circle { width: 45px; height: 6px; background: #eee; border-radius: 10px; overflow: hidden; margin-top: 4px; }
         .prog-fill { height: 100%; }
 
-        #qr-modal, #review-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+        /* أزرار الإجراء ومستوى الطالب */
+        .action-btn {
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.88rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .btn-level { color: #0284c7; background: #e0f2fe; }
+        .btn-level:hover { background: #bae6fd; }
+        .btn-review { color: #16a34a; background: #dcfce7; margin-left: 5px; }
+        .btn-review:hover { background: #bbf7d0; }
+        .btn-delete { color: #dc2626; background: #fee2e2; }
+        .btn-delete:hover { background: #fecaca; }
+
+        /* النوافذ المنبثقة */
+        #qr-modal, #review-modal, #student-report-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 30px; border-radius: 25px; text-align: center; max-width: 500px; width: 95%; max-height: 85vh; overflow-y: auto; position: relative; }
-        #review-modal .modal-content { max-width: 800px; text-align: right; }
+        #review-modal .modal-content, #student-report-modal .modal-content { max-width: 800px; text-align: right; }
         
         .answer-card { padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border); line-height: 1.6; }
         .ans-correct { background: var(--correct-bg); color: var(--correct-text); border-color: #bbf7d0; }
         .ans-wrong { background: var(--wrong-bg); color: var(--wrong-text); border-color: #fecaca; }
+
+        /* عناصر تقرير الطالب الذكي */
+        .trend-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            margin: 10px 0 15px 0;
+        }
+        .trend-up { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .trend-down { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .trend-flat { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+        .report-chart-box { height: 260px; margin: 15px 0; border: 1px solid var(--border); border-radius: 15px; padding: 15px; }
 
         .close-btn { background: var(--text-main); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; margin-top: 15px; }
         .view-only-hide { display: none !important; }
@@ -112,7 +146,7 @@
         <div class="chart-wrapper"><canvas id="levelsChart"></canvas></div>
     </div>
 
-    <!-- قسم الأفضل 5 والأقل 5 تحت الرسوم البيانية مباشرة -->
+    <!-- قسم الأفضل 5 والأقل 5 -->
     <div class="rankings-grid">
         <div class="rank-card top">
             <div class="rank-title">🏆 أفضل ٥ طلاب <span>(الأعلى درجات)</span></div>
@@ -138,6 +172,7 @@
                     <th>صحح</th>
                     <th>مثل</th>
                     <th>النموذج</th>
+                    <th class="no-print">مستوى الطالب</th>
                     <th id="action-header" class="no-print">إجراء</th>
                 </tr>
             </thead>
@@ -146,6 +181,7 @@
     </div>
 </div>
 
+<!-- نافذة QR Code -->
 <div id="qr-modal">
     <div class="modal-content">
         <h3>مشاركة تقرير اللوحة (للعرض فقط)</h3>
@@ -156,12 +192,43 @@
     </div>
 </div>
 
+<!-- نافذة مراجعة إجابات الطالب -->
 <div id="review-modal">
     <div class="modal-content">
         <h3 id="review-student-name">مراجعة إجابات الطالب</h3>
         <hr>
         <div id="review-list"></div>
         <button class="close-btn" onclick="closeModal('review-modal')">إغلاق النافذة</button>
+    </div>
+</div>
+
+<!-- نافذة التقرير الذكي والتراكمي للطالب -->
+<div id="student-report-modal">
+    <div class="modal-content">
+        <h2 id="report-student-name" style="margin:0 0 5px 0; color:var(--accent);">تقرير أداء الطالب</h2>
+        <div id="trend-indicator-box"></div>
+
+        <!-- الرسم البياني لتقدم المستوى عبر النماذج -->
+        <div class="report-chart-box">
+            <canvas id="studentProgressChart"></canvas>
+        </div>
+
+        <!-- جدول درجات الطالب عبر جميع النماذج -->
+        <h4 style="margin: 10px 0 8px 0;">📋 درجات الطالب في جميع النماذج المختبرة:</h4>
+        <div style="overflow-x:auto;">
+            <table style="width:100%; border:1px solid var(--border); font-size:0.85rem;" id="student-models-table">
+                <thead>
+                    <tr style="background:#f1f5f9;">
+                        <th style="padding:8px;">النموذج</th>
+                        <th style="padding:8px;">الدرجة</th>
+                        <th style="padding:8px;">النسبة</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <button class="close-btn" onclick="closeModal('student-report-modal')">إغلاق التقرير</button>
     </div>
 </div>
 
@@ -177,8 +244,10 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    let chartA, chartB, currentUnsubscribe = null;
+    let chartA, chartB, studentLineChart = null;
+    let currentUnsubscribe = null;
     let selectedModel = 'all';
+    let globalSnapshotData = []; 
 
     const urlParams = new URLSearchParams(window.location.search);
     const isViewOnly = urlParams.has('view');
@@ -224,17 +293,23 @@
             document.getElementById('action-header').classList.add('view-only-hide');
         }
 
-        currentUnsubscribe = db.collection("alkfaeat_results").orderBy("time", "desc").onSnapshot(snapshot => {
+        currentUnsubscribe = db.collection("alkfaeat_results").orderBy("time", "asc").onSnapshot(snapshot => {
             updateModelButtons(snapshot);
             
+            globalSnapshotData = [];
+            snapshot.forEach(doc => {
+                globalSnapshotData.push({ id: doc.id, ...doc.data() });
+            });
+
             let scores = [], rows = "";
             let levels = { exc: 0, vgood: 0, good: 0, acc: 0, weak: 0 };
             let skillsSums = { est: 0, ikm: 0, swh: 0, arb: 0, sah: 0, math: 0 };
             let studentCount = 0;
             let studentsList = [];
 
-            snapshot.forEach(doc => {
-                const d = doc.data();
+            let displayList = [...globalSnapshotData].reverse();
+
+            displayList.forEach(d => {
                 let actualModel = d.model_id || 'الجملة الاسمية';
                 if (modelId === 'all' || actualModel == modelId) {
                     const p = Math.round((d.score / d.total) * 100);
@@ -266,9 +341,12 @@
                             return `<td>${val}%<div class="prog-circle"><div class="prog-fill" style="width:${val}%; background:${val<60?'#ef4444':val<80?'#f59e0b':'#10b981'}"></div></div></td>`;
                         }).join('')}
                         <td>${actualModel}</td>
+                        <td class="no-print">
+                            <button class="action-btn btn-level" data-student="${encodeURIComponent(d.name)}" onclick="openStudentReportFromAttr(this)">📊 المستوى</button>
+                        </td>
                         <td class="no-print ${isViewOnly ? 'view-only-hide' : ''}">
-                            <button style="color:blue;border:none;background:none;cursor:pointer;margin-left:10px" onclick="openReview('${doc.id}')">👁️ مراجعة</button>
-                            <button style="color:red;border:none;background:none;cursor:pointer" onclick="deleteDoc('${doc.id}')">حذف</button>
+                            <button class="action-btn btn-review" onclick="openReview('${d.id}')">👁️ مراجعة</button>
+                            <button class="action-btn btn-delete" onclick="deleteDoc('${d.id}')">حذف</button>
                         </td>
                     </tr>`;
                 }
@@ -283,11 +361,95 @@
         });
     }
 
-    // دالة تحديث قائمة أفضل 5 وأقل 5 طلاب
+    function openStudentReportFromAttr(element) {
+        const rawName = element.getAttribute('data-student');
+        if (rawName) {
+            openStudentReport(decodeURIComponent(rawName));
+        }
+    }
+
+    // دالة فتح تقرير الطالب المخصص
+    function openStudentReport(studentName) {
+        document.getElementById('report-student-name').innerText = `👤 تقرير أداء الطالب: ${studentName}`;
+        
+        let studentRecords = globalSnapshotData.filter(item => item.name === studentName);
+
+        if (studentRecords.length === 0) return;
+
+        let labels = [];
+        let percentages = [];
+        let tableRowsHtml = "";
+
+        studentRecords.forEach(rec => {
+            let mName = rec.model_id || 'الجملة الاسمية';
+            let pct = Math.round((rec.score / rec.total) * 100);
+            labels.push(mName);
+            percentages.push(pct);
+
+            tableRowsHtml += `
+                <tr>
+                    <td style="padding:8px; border-bottom:1px solid #eee;"><b>${mName}</b></td>
+                    <td style="padding:8px; border-bottom:1px solid #eee; color:var(--accent); font-weight:bold;">${rec.score} من ${rec.total}</td>
+                    <td style="padding:8px; border-bottom:1px solid #eee;">${pct}%</td>
+                </tr>
+            `;
+        });
+
+        document.querySelector("#student-models-table tbody").innerHTML = tableRowsHtml;
+
+        const indicatorBox = document.getElementById('trend-indicator-box');
+        if (studentRecords.length > 1) {
+            let firstScore = percentages[0];
+            let lastScore = percentages[percentages.length - 1];
+            let diff = lastScore - firstScore;
+
+            if (diff > 0) {
+                indicatorBox.innerHTML = `<span class="trend-badge trend-up">📈 تقدم ملحوظ بمقدار +${diff}% مقارنة بأول اختبار</span>`;
+            } else if (diff < 0) {
+                indicatorBox.innerHTML = `<span class="trend-badge trend-down">📉 تراجع في المستوى بمقدار ${diff}% يحتاج توجيه ومتابعة</span>`;
+            } else {
+                indicatorBox.innerHTML = `<span class="trend-badge trend-flat">➖ مستوى ثابت بمتوسط ${lastScore}%</span>`;
+            }
+        } else {
+            indicatorBox.innerHTML = `<span class="trend-badge trend-flat">📌 اختبر النموذج الأول فقط (بانتظار أدائه في النماذج القادمة)</span>`;
+        }
+
+        const ctxLine = document.getElementById('studentProgressChart').getContext('2d');
+        if (studentLineChart) studentLineChart.destroy();
+
+        studentLineChart = new Chart(ctxLine, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'نسبة الإنجاز %',
+                    data: percentages,
+                    borderColor: '#0284c7',
+                    backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#0284c7'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }
+                },
+                plugins: {
+                    title: { display: true, text: 'مسار تقدم الطالب من نموذج لآخر' }
+                }
+            }
+        });
+
+        document.getElementById('student-report-modal').style.display = 'flex';
+    }
+
     function updateRankings(students) {
         students.sort((a, b) => b.percentage - a.percentage);
 
-        // أفضل 5 طلاب
         const top5List = document.getElementById('top5List');
         top5List.innerHTML = "";
         students.slice(0, 5).forEach(st => {
@@ -296,7 +458,6 @@
             top5List.appendChild(li);
         });
 
-        // أقل 5 طلاب
         const bottom5List = document.getElementById('bottom5List');
         bottom5List.innerHTML = "";
         students.slice(-5).reverse().forEach(st => {
