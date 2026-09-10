@@ -74,25 +74,26 @@
         .stat-title { font-size: 14px; color: #57606a; margin-bottom: 8px; }
         .stat-value { font-size: 24px; font-weight: bold; color: #0969da; }
 
-        /* منطقة الرسم البياني والقوائم */
+        /* منطقة الرسوم البيانية والقوائم */
         .dashboard-row {
             display: flex;
-            gap: 20px;
+            gap: 15px;
             margin-bottom: 25px;
             flex-wrap: wrap;
         }
         .chart-container {
-            flex: 2;
-            min-width: 300px;
+            flex: 1.2;
+            min-width: 280px;
             background: #fff;
             border: 1px solid #e1e4e8;
             border-radius: 8px;
             padding: 15px;
             height: 320px;
+            box-sizing: border-box;
         }
         .lists-container {
             flex: 1;
-            min-width: 250px;
+            min-width: 260px;
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -182,11 +183,16 @@
         </div>
     </div>
 
-    <!-- قسم الرسم البياني والقوائم الجانبية -->
+    <!-- قسم الرسوم البيانية والقوائم الجانبية -->
     <div class="dashboard-row">
-        <!-- الرسم البياني -->
+        <!-- الرسم البياني الأولي: المهارات -->
         <div class="chart-container">
             <canvas id="skillsChart"></canvas>
+        </div>
+
+        <!-- الرسم البياني الدائري: توزيع التقديرات -->
+        <div class="chart-container">
+            <canvas id="gradePieChart"></canvas>
         </div>
 
         <!-- القائمتان الذكيتان -->
@@ -295,16 +301,26 @@
 </div>
 
 <script>
-    // 1. دالة قراءة الجدول وحساب الأفضل والأقل تلقائياً
+    let pieChartInstance = null;
+
+    // 1. دالة قراءة الجدول وحساب الأفضل والأقل والتقديرات تلقائياً
     function processTableData() {
         const rows = document.querySelectorAll("#studentsTable tbody tr");
         let studentsData = [];
+
+        let gradeCounts = {
+            excellent: 0, // ممتاز (27-30)
+            veryGood: 0,  // جيد جداً (24-26)
+            good: 0,      // جيد (21-23)
+            pass: 0,      // مقبول (18-20)
+            weak: 0       // ضعيف (أقل من 18)
+        };
 
         rows.forEach(row => {
             const cells = row.querySelectorAll("td");
             if (cells.length > 1) {
                 const name = cells[0].innerText.trim();
-                const scoreText = cells[1].innerText.trim(); // مثل 27/30
+                const scoreText = cells[1].innerText.trim();
                 const numericScore = parseFloat(scoreText.split('/')[0]) || 0;
 
                 studentsData.push({
@@ -312,13 +328,20 @@
                     scoreText: scoreText,
                     score: numericScore
                 });
+
+                // تصنيف التقديرات بناءً على الدرجة من 30
+                if (numericScore >= 27) gradeCounts.excellent++;
+                else if (numericScore >= 24) gradeCounts.veryGood++;
+                else if (numericScore >= 21) gradeCounts.good++;
+                else if (numericScore >= 18) gradeCounts.pass++;
+                else gradeCounts.weak++;
             }
         });
 
         // ترتيب الطلاب من الأعلى للأقل
         studentsData.sort((a, b) => b.score - a.score);
 
-        // التحديث التلقائي للإحصائيات في الأعلى
+        // التحديث التلقائي للإحصائيات العليا
         document.getElementById("totalStudents").innerText = studentsData.length;
         if (studentsData.length > 0) {
             const max = studentsData[0].score;
@@ -332,39 +355,73 @@
             document.getElementById("belowAvg").innerText = below;
         }
 
-        // 2. تعبئة قائمة أفضل 5 طلاب
+        // تعبئة قائمة أفضل 5 طلاب
         const top5List = document.getElementById("top5List");
         top5List.innerHTML = "";
-        const top5 = studentsData.slice(0, 5);
-        top5.forEach(student => {
+        studentsData.slice(0, 5).forEach(student => {
             const li = document.createElement("li");
             li.innerHTML = `<b>${student.name}</b> (${student.scoreText})`;
             top5List.appendChild(li);
         });
 
-        // 3. تعبئة قائمة أقل 3 طلاب
+        // تعبئة قائمة أقل 3 طلاب
         const bottom3List = document.getElementById("bottom3List");
         bottom3List.innerHTML = "";
-        const bottom3 = studentsData.slice(-3).reverse(); // أخذ الأقل ترتيباً
-        bottom3.forEach(student => {
+        studentsData.slice(-3).reverse().forEach(student => {
             const li = document.createElement("li");
             li.innerHTML = `<b>${student.name}</b> (${student.scoreText})`;
             bottom3List.appendChild(li);
         });
+
+        // تحديث أو إنشاء الرسم البياني الدائري للتقديرات
+        updatePieChart(gradeCounts);
     }
 
-    // 4. إنشاء الرسم البياني للتقييمات المهارية
-    const ctx = document.getElementById('skillsChart').getContext('2d');
-    new Chart(ctx, {
+    // 2. إنشاء وتحديث الرسم البياني الدائري (ممتاز، جيد جداً، جيد، مقبول، ضعيف)
+    function updatePieChart(counts) {
+        const ctxPie = document.getElementById('gradePieChart').getContext('2d');
+        
+        if (pieChartInstance) {
+            pieChartInstance.destroy(); // إعادة بناء الشكل عند تعديل البيانات
+        }
+
+        pieChartInstance = new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: ['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف'],
+                datasets: [{
+                    data: [counts.excellent, counts.veryGood, counts.good, counts.pass, counts.weak],
+                    backgroundColor: ['#2ea44f', '#0969da', '#17a2b8', '#ffc107', '#cf222e']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 12, font: { size: 11 } }
+                    },
+                    title: {
+                        display: true,
+                        text: 'توزيع التقديرات العامة',
+                        font: { size: 13, weight: 'bold' }
+                    }
+                }
+            }
+        });
+    }
+
+    // 3. رسم المهارات (الأعمدة)
+    const ctxSkills = document.getElementById('skillsChart').getContext('2d');
+    new Chart(ctxSkills, {
         type: 'bar',
         data: {
             labels: ['استخرج', 'إكمال', 'صح وخطأ', 'أعرب', 'صحح', 'مثل'],
             datasets: [{
                 label: 'متوسط الأداء المظهري %',
                 data: [85, 53, 78, 67, 64, 49],
-                backgroundColor: [
-                    '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
-                ],
+                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'],
                 borderRadius: 4
             }]
         },
@@ -372,7 +429,12 @@
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false }
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: 'تحليل الأداء حسب المهارة',
+                    font: { size: 13, weight: 'bold' }
+                }
             },
             scales: {
                 y: {
@@ -384,7 +446,7 @@
         }
     });
 
-    // تشغيل الحسابات التلقائية عند تحميل الصفحة
+    // تشغيل الحسابات تلقائياً عند التحميل
     document.addEventListener("DOMContentLoaded", processTableData);
 </script>
 
