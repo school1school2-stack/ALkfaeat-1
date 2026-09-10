@@ -36,12 +36,12 @@
         .stat-card { background: var(--card-bg); padding: 20px; border-radius: 18px; text-align: center; border: 1px solid var(--border); }
         .stat-card p { font-size: 1.8rem; font-weight: bold; color: var(--accent); margin: 10px 0 0; }
 
-        /* منطقة الرسوم البيانية المتوازية (شريطي + دائري) */
+        /* منطقة الرسوم البيانية المتوازية */
         .charts-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; margin-bottom: 25px; }
         @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
         .chart-wrapper { background: var(--card-bg); padding: 20px; border-radius: 20px; border: 1px solid var(--border); height: 380px; box-sizing: border-box; }
 
-        /* منطقة كروت أفضل وأقل الطلاب (مرتبة أفقياً تحت الرسم البياني) */
+        /* منطقة كروت أفضل 5 وأقل 5 طلاب */
         .rankings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }
         @media (max-width: 768px) { .rankings-grid { grid-template-columns: 1fr; } }
 
@@ -112,15 +112,15 @@
         <div class="chart-wrapper"><canvas id="levelsChart"></canvas></div>
     </div>
 
-    <!-- قسم الأفضل والأقل الأنيق تحت الرسوم البيانية مباشرة -->
+    <!-- قسم الأفضل 5 والأقل 5 تحت الرسوم البيانية مباشرة -->
     <div class="rankings-grid">
         <div class="rank-card top">
             <div class="rank-title">🏆 أفضل ٥ طلاب <span>(الأعلى درجات)</span></div>
             <ol class="rank-list" id="top5List"></ol>
         </div>
         <div class="rank-card bottom">
-            <div class="rank-title">⚠️ أقل ٣ طلاب درجات <span>(بحاجة لمتابعة)</span></div>
-            <ol class="rank-list" id="bottom3List"></ol>
+            <div class="rank-title">⚠️ أقل ٥ طلاب درجات <span>(بحاجة لمتابعة)</span></div>
+            <ol class="rank-list" id="bottom5List"></ol>
         </div>
     </div>
 
@@ -283,9 +283,11 @@
         });
     }
 
+    // دالة تحديث قائمة أفضل 5 وأقل 5 طلاب
     function updateRankings(students) {
         students.sort((a, b) => b.percentage - a.percentage);
 
+        // أفضل 5 طلاب
         const top5List = document.getElementById('top5List');
         top5List.innerHTML = "";
         students.slice(0, 5).forEach(st => {
@@ -294,12 +296,13 @@
             top5List.appendChild(li);
         });
 
-        const bottom3List = document.getElementById('bottom3List');
-        bottom3List.innerHTML = "";
-        students.slice(-3).reverse().forEach(st => {
+        // أقل 5 طلاب
+        const bottom5List = document.getElementById('bottom5List');
+        bottom5List.innerHTML = "";
+        students.slice(-5).reverse().forEach(st => {
             const li = document.createElement('li');
             li.innerHTML = `<b>${st.name}</b> <span style="color:#b91c1c; font-weight:bold;">(${st.score}/${st.total})</span>`;
-            bottom3List.appendChild(li);
+            bottom5List.appendChild(li);
         });
     }
 
