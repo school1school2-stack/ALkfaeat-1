@@ -95,14 +95,28 @@
         .ans-correct { background: var(--correct-bg); color: var(--correct-text); border-color: #bbf7d0; }
         .ans-wrong { background: var(--wrong-bg); color: var(--wrong-text); border-color: #fecaca; }
 
-        /* عناصر تقرير الطالب الذكي */
+        /* كارت المواعيد والتصنيفات الذكية */
+        .time-box {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+            margin: 10px 0;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.85rem;
+        }
+        .time-item { flex: 1; text-align: center; }
+        .time-item span { display: block; font-weight: bold; margin-top: 4px; color: var(--accent); }
+
         .trend-badge {
             display: inline-block;
             padding: 8px 16px;
             border-radius: 20px;
             font-weight: bold;
             font-size: 0.95rem;
-            margin: 10px 0 15px 0;
+            margin: 5px 0 10px 0;
         }
         .trend-up { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
         .trend-down { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
@@ -206,6 +220,19 @@
 <div id="student-report-modal">
     <div class="modal-content">
         <h2 id="report-student-name" style="margin:0 0 5px 0; color:var(--accent);">تقرير أداء الطالب</h2>
+        
+        <!-- كارت توقيت الاختبار السابق والقادم -->
+        <div class="time-box">
+            <div class="time-item">
+                🕒 آخر اختبار تم تقديمه:
+                <span id="last-test-time">-</span>
+            </div>
+            <div class="time-item" style="border-right:1px solid #e2e8f0;">
+                📅 موعد الاختبار القادم:
+                <span id="next-test-time" style="color:#059669;">-</span>
+            </div>
+        </div>
+
         <div id="trend-indicator-box"></div>
 
         <!-- الرسم البياني التفاعلي -->
@@ -214,12 +241,13 @@
         </div>
 
         <!-- جدول درجات الطالب عبر جميع النماذج -->
-        <h4 style="margin: 10px 0 8px 0;">📋 درجات الطالب في جميع النماذج المختبرة:</h4>
+        <h4 style="margin: 10px 0 8px 0;">📋 سجل النماذج والاختبارات المكتملة:</h4>
         <div style="overflow-x:auto;">
             <table style="width:100%; border:1px solid var(--border); font-size:0.85rem;" id="student-models-table">
                 <thead>
                     <tr style="background:#f1f5f9;">
                         <th style="padding:8px; text-align:right;">النموذج</th>
+                        <th style="padding:8px; text-align:center;">التاريخ والتوقيت</th>
                         <th style="padding:8px; text-align:center;">الدرجة</th>
                         <th style="padding:8px; text-align:center;">النسبة والتصنيف</th>
                     </tr>
@@ -376,7 +404,35 @@
         return { text: "ضعيف 🔴", color: "#dc2626", bg: "#fee2e2" };
     }
 
-    // دالة فتح تقرير الطالب التكيُّفية الذكية
+    // دالة تحويل الطابع الزمني إلى صيغة مقروءة بوضوح
+    function formatDateTime(timeVal) {
+        if (!timeVal) return "غير مسجل";
+        let dateObj;
+        if (timeVal.toDate && typeof timeVal.toDate === 'function') {
+            dateObj = timeVal.toDate();
+        } else if (typeof timeVal === 'number' || typeof timeVal === 'string') {
+            dateObj = new Date(timeVal);
+        } else {
+            return "غير مسجل";
+        }
+        return dateObj.toLocaleString('ar-SA', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    // دالة حساب موعد الاختبار القادم تلقائياً (بعد 7 أيام من الاختبار الأخير)
+    function getNextTestTime(timeVal) {
+        if (!timeVal) return "يحدد لاحقاً";
+        let dateObj;
+        if (timeVal.toDate && typeof timeVal.toDate === 'function') {
+            dateObj = timeVal.toDate();
+        } else {
+            dateObj = new Date(timeVal);
+        }
+        // إضافة 7 أيام تلقائياً
+        dateObj.setDate(dateObj.getDate() + 7);
+        return dateObj.toLocaleDateString('ar-SA', { weekday: 'long', day: 'numeric', month: 'short' });
+    }
+
+    // دالة فتح تقرير الطالب
     function openStudentReport(studentName) {
         document.getElementById('report-student-name').innerText = `👤 تقرير أداء الطالب: ${studentName}`;
         
@@ -389,10 +445,16 @@
         let barColors = [];
         let tableRowsHtml = "";
 
+        // تعبئة توقيت آخر اختبار وموعد الاختبار القادم
+        let lastRecord = studentRecords[studentRecords.length - 1];
+        document.getElementById('last-test-time').innerText = formatDateTime(lastRecord.time);
+        document.getElementById('next-test-time').innerText = getNextTestTime(lastRecord.time);
+
         studentRecords.forEach(rec => {
             let mName = rec.model_id || 'الجملة الاسمية';
             let pct = Math.round((rec.score / rec.total) * 100);
             let grade = getGradeInfo(pct);
+            let formattedTime = formatDateTime(rec.time);
             
             labels.push(mName);
             percentages.push(pct);
@@ -401,6 +463,7 @@
             tableRowsHtml += `
                 <tr>
                     <td style="padding:10px; border-bottom:1px solid #eee; text-align:right;"><b>${mName}</b></td>
+                    <td style="padding:10px; border-bottom:1px solid #eee; text-align:center; color:#64748b; font-size:0.8rem;">${formattedTime}</td>
                     <td style="padding:10px; border-bottom:1px solid #eee; text-align:center; color:var(--accent); font-weight:bold;">${rec.score} من ${rec.total}</td>
                     <td style="padding:10px; border-bottom:1px solid #eee; text-align:center;"><span style="font-weight:bold; color:${grade.color}; padding:3px 8px; background:${grade.bg}; border-radius:12px;">${pct}% (${grade.text})</span></td>
                 </tr>
@@ -433,7 +496,6 @@
             const ctxChart = document.getElementById('studentProgressChart').getContext('2d');
             if (studentLineChart) studentLineChart.destroy();
 
-            // إذا كان لدى الطالب نموذج واحد فقط، نستخدم رسم العمود (Bar Chart) الأنيق
             if (studentRecords.length === 1) {
                 studentLineChart = new Chart(ctxChart, {
                     type: 'bar',
@@ -460,7 +522,6 @@
                     }
                 });
             } else {
-                // إذا كان اختبر أكثر من نموذج، نستخدم الرسم الخطي (Line Chart) لعرض منحنى التقدم
                 studentLineChart = new Chart(ctxChart, {
                     type: 'line',
                     data: {
