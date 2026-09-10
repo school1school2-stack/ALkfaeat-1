@@ -25,7 +25,7 @@
         .model-btn.active { background: var(--accent); color: white; }
 
         .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 30px; border-radius: 20px; margin-bottom: 30px; border-bottom: 5px solid var(--accent); box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        .header h1 { margin: 0; color: var(--accent); font-size: 1.8rem; }
+        .header h1 { margin: 0; color: var(--accent); font-size: 1.6rem; line-height: 1.5; }
 
         .action-buttons { display: flex; gap: 10px; align-items: center; }
         .btn-share { background: #0ea5e9; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
@@ -137,7 +137,7 @@
 
     <div class="header">
         <div>
-            <h1 id="main-title">📊 منصة أ / عبدالعزيز الفيفي ( التحليل الذكي ) الكفايات اللغوية /</h1>
+            <h1 id="main-title">📊 منصة أ / عبدالعزيز الفيفي ( التحليل الذكي )<br>الكفايات اللغوية</h1>
             <p style="color: var(--text-sub); margin: 5px 0 0;">متابعة دقيقة لمستويات التميز والإخفاق - ثانوية الأمير عبدالمجيد 😉</p>
         </div>
         <div class="action-buttons no-print" id="action-area">
@@ -418,5 +418,4 @@
     }
 
     function getNextTestTime(timeVal) {
-        if (!timeVal) return "يحدد لاحقاً";
- 
+        if (!timeVal) retu
