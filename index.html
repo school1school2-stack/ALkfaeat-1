@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة القيادة الذكية | تقارير أ/ عبدالعزيز الفيفي ثانوية الأمير عبدالمجيد 😉</title>
+    <title>منصة أ / عبدالعزيز الفيفي ( التحليل الذكي ) - الكفايات اللغوية 😉</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -25,7 +25,8 @@
         .model-btn.active { background: var(--accent); color: white; }
 
         .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 30px; border-radius: 20px; margin-bottom: 30px; border-bottom: 5px solid var(--accent); box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        .header h1 { margin: 0; color: var(--accent); font-size: 1.8rem; }
+        .header h1 { margin: 0; color: var(--accent); font-size: 1.8rem; line-height: 1.3; }
+        .header-sub-title { font-size: 1.4rem; color: #0284c7; font-weight: bold; margin-top: 4px; display: block; }
 
         .action-buttons { display: flex; gap: 10px; align-items: center; }
         .btn-share { background: #0ea5e9; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
@@ -137,8 +138,9 @@
 
     <div class="header">
         <div>
-            <h1 id="main-title">📊 منصة التحليل الذكي</h1>
-            <p style="color: var(--text-sub); margin: 5px 0 0;">متابعة دقيقة لمستويات الإخفاق والتميز - أ/ عبدالعزيز الفيفي ثانوية الأمير عبدالمجيد 😉</p>
+            <h1 id="main-title">📊 منصة أ / عبدالعزيز الفيفي ( التحليل الذكي )</h1>
+            <span class="header-sub-title" id="sub-title">الكفايات اللغوية</span>
+            <p style="color: var(--text-sub); margin: 8px 0 0;">متابعة دقيقة لمستويات التميز والإخفاق - ثانوية الأمير عبدالمجيد 😉</p>
         </div>
         <div class="action-buttons no-print" id="action-area">
             <button class="btn-share" onclick="generateShareLink(selectedModel)">🔗 مشاركة اللوحة</button>
@@ -404,7 +406,6 @@
         return { text: "ضعيف 🔴", color: "#dc2626", bg: "#fee2e2" };
     }
 
-    // دالة تحويل الطابع الزمني إلى صيغة مقروءة بوضوح
     function formatDateTime(timeVal) {
         if (!timeVal) return "غير مسجل";
         let dateObj;
@@ -418,7 +419,6 @@
         return dateObj.toLocaleString('ar-SA', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
 
-    // دالة حساب موعد الاختبار القادم تلقائياً (بعد 7 أيام من الاختبار الأخير)
     function getNextTestTime(timeVal) {
         if (!timeVal) return "يحدد لاحقاً";
         let dateObj;
@@ -427,12 +427,10 @@
         } else {
             dateObj = new Date(timeVal);
         }
-        // إضافة 7 أيام تلقائياً
         dateObj.setDate(dateObj.getDate() + 7);
         return dateObj.toLocaleDateString('ar-SA', { weekday: 'long', day: 'numeric', month: 'short' });
     }
 
-    // دالة فتح تقرير الطالب
     function openStudentReport(studentName) {
         document.getElementById('report-student-name').innerText = `👤 تقرير أداء الطالب: ${studentName}`;
         
@@ -445,7 +443,6 @@
         let barColors = [];
         let tableRowsHtml = "";
 
-        // تعبئة توقيت آخر اختبار وموعد الاختبار القادم
         let lastRecord = studentRecords[studentRecords.length - 1];
         document.getElementById('last-test-time').innerText = formatDateTime(lastRecord.time);
         document.getElementById('next-test-time').innerText = getNextTestTime(lastRecord.time);
@@ -604,8 +601,10 @@
     function setMod(m) { 
         selectedModel = m; 
         const actionArea = document.getElementById('action-area');
+        const subTitle = document.getElementById('sub-title');
+
         if (m === 'all') {
-            document.getElementById('main-title').innerText = "📊 منصة التحليل الذكي";
+            subTitle.innerText = "الكفايات اللغوية";
             if(!isViewOnly) {
                 actionArea.innerHTML = `
                     <button class="btn-share" onclick="generateShareLink('all')">🔗 مشاركة اللوحة</button>
@@ -614,7 +613,7 @@
                 actionArea.innerHTML = `<button class="model-btn" style="background:#1e293b; color:white" onclick="window.print()">🖨️ طباعة</button>`;
             }
         } else {
-            document.getElementById('main-title').innerText = `📊 تحليل نموذج (${m})`;
+            subTitle.innerText = `تحليل نموذج (${m})`;
             if(!isViewOnly) {
                 actionArea.innerHTML = `
                     <button class="btn-share" onclick="generateShareLink('${m}')">🔗 مشاركة النموذج</button>
