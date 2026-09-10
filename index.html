@@ -65,21 +65,26 @@
         tbody tr:nth-child(even) { background-color: var(--row-alt); }
         tbody tr:hover { background-color: #f1f5f9; }
 
-        /* اسم الطالب القابل للنقر */
-        .clickable-student {
-            color: #0284c7;
-            cursor: pointer;
-            text-decoration: underline;
-            text-decoration-style: dashed;
-            font-weight: bold;
-            transition: color 0.2s;
-        }
-        .clickable-student:hover {
-            color: #0366d6;
-        }
-
         .prog-circle { width: 45px; height: 6px; background: #eee; border-radius: 10px; overflow: hidden; margin-top: 4px; }
         .prog-fill { height: 100%; }
+
+        /* أزرار الإجراء ومستوى الطالب */
+        .action-btn {
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.88rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .btn-level { color: #0284c7; background: #e0f2fe; }
+        .btn-level:hover { background: #bae6fd; }
+        .btn-review { color: #16a34a; background: #dcfce7; margin-left: 5px; }
+        .btn-review:hover { background: #bbf7d0; }
+        .btn-delete { color: #dc2626; background: #fee2e2; }
+        .btn-delete:hover { background: #fecaca; }
 
         /* النوافذ المنبثقة */
         #qr-modal, #review-modal, #student-report-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
@@ -97,13 +102,13 @@
             border-radius: 20px;
             font-weight: bold;
             font-size: 0.95rem;
-            margin: 10px 0 20px 0;
+            margin: 10px 0 15px 0;
         }
         .trend-up { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
         .trend-down { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
         .trend-flat { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
 
-        .report-chart-box { height: 280px; margin: 20px 0; border: 1px solid var(--border); border-radius: 15px; padding: 15px; }
+        .report-chart-box { height: 260px; margin: 15px 0; border: 1px solid var(--border); border-radius: 15px; padding: 15px; }
 
         .close-btn { background: var(--text-main); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; margin-top: 15px; }
         .view-only-hide { display: none !important; }
@@ -158,7 +163,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>اسم الطالب (اضغط لمشاهدة السجل)</th>
+                    <th>اسم الطالب</th>
                     <th>الدرجة</th>
                     <th>استخرج</th>
                     <th>إكمال</th>
@@ -167,6 +172,7 @@
                     <th>صحح</th>
                     <th>مثل</th>
                     <th>النموذج</th>
+                    <th class="no-print">مستوى الطالب</th>
                     <th id="action-header" class="no-print">إجراء</th>
                 </tr>
             </thead>
@@ -208,7 +214,7 @@
         </div>
 
         <!-- جدول درجات الطالب عبر جميع النماذج -->
-        <h4 style="margin: 15px 0 10px 0;">📋 درجات الطالب في جميع النماذج المختبرة:</h4>
+        <h4 style="margin: 10px 0 8px 0;">📋 درجات الطالب في جميع النماذج المختبرة:</h4>
         <div style="overflow-x:auto;">
             <table style="width:100%; border:1px solid var(--border); font-size:0.85rem;" id="student-models-table">
                 <thead>
@@ -241,7 +247,7 @@
     let chartA, chartB, studentLineChart = null;
     let currentUnsubscribe = null;
     let selectedModel = 'all';
-    let globalSnapshotData = []; // تخزين كل بيانات Firestore لتسهيل التحليل الفردي
+    let globalSnapshotData = []; 
 
     const urlParams = new URLSearchParams(window.location.search);
     const isViewOnly = urlParams.has('view');
@@ -301,7 +307,6 @@
             let studentCount = 0;
             let studentsList = [];
 
-            // إعادة الترتيب للعرض الأحدث أولاً
             let displayList = [...globalSnapshotData].reverse();
 
             displayList.forEach(d => {
@@ -328,18 +333,20 @@
 
                     Object.keys(skillsSums).forEach(k => skillsSums[k] += (s[k] !== undefined ? s[k] : p));
 
-                    // اسم الطالب أصلح قابلاً للنقر لعرض التقرير
                     rows += `<tr>
-                        <td><span class="clickable-student" onclick="openStudentReport('${d.name.replace(/'/g, "\\'")}')">👤 ${d.name}</span></td>
+                        <td><strong>${d.name}</strong></td>
                         <td style="color:var(--accent); font-weight:bold">${d.score}/${d.total}</td>
                         ${['est','ikm','swh','arb','sah','math'].map(k => {
                             let val = s[k] !== undefined ? s[k] : p;
                             return `<td>${val}%<div class="prog-circle"><div class="prog-fill" style="width:${val}%; background:${val<60?'#ef4444':val<80?'#f59e0b':'#10b981'}"></div></div></td>`;
                         }).join('')}
                         <td>${actualModel}</td>
+                        <td class="no-print">
+                            <button class="action-btn btn-level" data-student="${encodeURIComponent(d.name)}" onclick="openStudentReportFromAttr(this)">📊 المستوى</button>
+                        </td>
                         <td class="no-print ${isViewOnly ? 'view-only-hide' : ''}">
-                            <button style="color:blue;border:none;background:none;cursor:pointer;margin-left:10px" onclick="openReview('${d.id}')">👁️ مراجعة</button>
-                            <button style="color:red;border:none;background:none;cursor:pointer" onclick="deleteDoc('${d.id}')">حذف</button>
+                            <button class="action-btn btn-review" onclick="openReview('${d.id}')">👁️ مراجعة</button>
+                            <button class="action-btn btn-delete" onclick="deleteDoc('${d.id}')">حذف</button>
                         </td>
                     </tr>`;
                 }
@@ -354,11 +361,17 @@
         });
     }
 
+    function openStudentReportFromAttr(element) {
+        const rawName = element.getAttribute('data-student');
+        if (rawName) {
+            openStudentReport(decodeURIComponent(rawName));
+        }
+    }
+
     // دالة فتح تقرير الطالب المخصص
     function openStudentReport(studentName) {
         document.getElementById('report-student-name').innerText = `👤 تقرير أداء الطالب: ${studentName}`;
         
-        // استخراج جميع سجلات الطالب عبر كافة النماذج وترتيبها زمنياً
         let studentRecords = globalSnapshotData.filter(item => item.name === studentName);
 
         if (studentRecords.length === 0) return;
@@ -384,7 +397,6 @@
 
         document.querySelector("#student-models-table tbody").innerHTML = tableRowsHtml;
 
-        // حساب مؤشر التقدم مقارنةً بأول/آخر نموذج
         const indicatorBox = document.getElementById('trend-indicator-box');
         if (studentRecords.length > 1) {
             let firstScore = percentages[0];
@@ -402,7 +414,6 @@
             indicatorBox.innerHTML = `<span class="trend-badge trend-flat">📌 اختبر النموذج الأول فقط (بانتظار أدائه في النماذج القادمة)</span>`;
         }
 
-        // رسم منحنى التطور التراكمي للطالب
         const ctxLine = document.getElementById('studentProgressChart').getContext('2d');
         if (studentLineChart) studentLineChart.destroy();
 
@@ -436,7 +447,6 @@
         document.getElementById('student-report-modal').style.display = 'flex';
     }
 
-    // دالة تحديث قائمة أفضل 5 وأقل 5 طلاب
     function updateRankings(students) {
         students.sort((a, b) => b.percentage - a.percentage);
 
@@ -444,7 +454,7 @@
         top5List.innerHTML = "";
         students.slice(0, 5).forEach(st => {
             const li = document.createElement('li');
-            li.innerHTML = `<b class="clickable-student" onclick="openStudentReport('${st.name.replace(/'/g, "\\'")}')">${st.name}</b> <span style="color:#15803d; font-weight:bold;">(${st.score}/${st.total})</span>`;
+            li.innerHTML = `<b>${st.name}</b> <span style="color:#15803d; font-weight:bold;">(${st.score}/${st.total})</span>`;
             top5List.appendChild(li);
         });
 
@@ -452,7 +462,7 @@
         bottom5List.innerHTML = "";
         students.slice(-5).reverse().forEach(st => {
             const li = document.createElement('li');
-            li.innerHTML = `<b class="clickable-student" onclick="openStudentReport('${st.name.replace(/'/g, "\\'")}')">${st.name}</b> <span style="color:#b91c1c; font-weight:bold;">(${st.score}/${st.total})</span>`;
+            li.innerHTML = `<b>${st.name}</b> <span style="color:#b91c1c; font-weight:bold;">(${st.score}/${st.total})</span>`;
             bottom5List.appendChild(li);
         });
     }
