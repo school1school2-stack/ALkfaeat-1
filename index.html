@@ -65,26 +65,24 @@
         tbody tr:nth-child(even) { background-color: var(--row-alt); }
         tbody tr:hover { background-color: #f1f5f9; }
 
+        /* اسم الطالب القابل للنقر */
+        .clickable-student {
+            color: #0284c7;
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-style: dashed;
+            font-weight: bold;
+            display: inline-block;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        .clickable-student:hover {
+            color: #0366d6;
+            background-color: #e0f2fe;
+        }
+
         .prog-circle { width: 45px; height: 6px; background: #eee; border-radius: 10px; overflow: hidden; margin-top: 4px; }
         .prog-fill { height: 100%; }
-
-        /* أزرار الإجراء ومستوى الطالب */
-        .action-btn {
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 0.88rem;
-            padding: 4px 8px;
-            border-radius: 6px;
-            transition: background 0.2s;
-        }
-        .btn-level { color: #0284c7; background: #e0f2fe; }
-        .btn-level:hover { background: #bae6fd; }
-        .btn-review { color: #16a34a; background: #dcfce7; margin-left: 5px; }
-        .btn-review:hover { background: #bbf7d0; }
-        .btn-delete { color: #dc2626; background: #fee2e2; }
-        .btn-delete:hover { background: #fecaca; }
 
         /* النوافذ المنبثقة */
         #qr-modal, #review-modal, #student-report-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
@@ -163,7 +161,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>اسم الطالب</th>
+                    <th>اسم الطالب (اضغط لمشاهدة التقرير)</th>
                     <th>الدرجة</th>
                     <th>استخرج</th>
                     <th>إكمال</th>
@@ -172,7 +170,6 @@
                     <th>صحح</th>
                     <th>مثل</th>
                     <th>النموذج</th>
-                    <th class="no-print">مستوى الطالب</th>
                     <th id="action-header" class="no-print">إجراء</th>
                 </tr>
             </thead>
@@ -333,20 +330,18 @@
 
                     Object.keys(skillsSums).forEach(k => skillsSums[k] += (s[k] !== undefined ? s[k] : p));
 
+                    // استخدام data-name لتفادي الأخطاء في الأسماء الحاوية على علامات تنصيص أو مسافات
                     rows += `<tr>
-                        <td><strong>${d.name}</strong></td>
+                        <td><span class="clickable-student" data-student="${encodeURIComponent(d.name)}" onclick="openStudentReportFromAttr(this)">👤 ${d.name}</span></td>
                         <td style="color:var(--accent); font-weight:bold">${d.score}/${d.total}</td>
                         ${['est','ikm','swh','arb','sah','math'].map(k => {
                             let val = s[k] !== undefined ? s[k] : p;
                             return `<td>${val}%<div class="prog-circle"><div class="prog-fill" style="width:${val}%; background:${val<60?'#ef4444':val<80?'#f59e0b':'#10b981'}"></div></div></td>`;
                         }).join('')}
                         <td>${actualModel}</td>
-                        <td class="no-print">
-                            <button class="action-btn btn-level" data-student="${encodeURIComponent(d.name)}" onclick="openStudentReportFromAttr(this)">📊 المستوى</button>
-                        </td>
                         <td class="no-print ${isViewOnly ? 'view-only-hide' : ''}">
-                            <button class="action-btn btn-review" onclick="openReview('${d.id}')">👁️ مراجعة</button>
-                            <button class="action-btn btn-delete" onclick="deleteDoc('${d.id}')">حذف</button>
+                            <button style="color:blue;border:none;background:none;cursor:pointer;margin-left:10px" onclick="openReview('${d.id}')">👁️ مراجعة</button>
+                            <button style="color:red;border:none;background:none;cursor:pointer" onclick="deleteDoc('${d.id}')">حذف</button>
                         </td>
                     </tr>`;
                 }
@@ -454,7 +449,7 @@
         top5List.innerHTML = "";
         students.slice(0, 5).forEach(st => {
             const li = document.createElement('li');
-            li.innerHTML = `<b>${st.name}</b> <span style="color:#15803d; font-weight:bold;">(${st.score}/${st.total})</span>`;
+            li.innerHTML = `<b class="clickable-student" data-student="${encodeURIComponent(st.name)}" onclick="openStudentReportFromAttr(this)">${st.name}</b> <span style="color:#15803d; font-weight:bold;">(${st.score}/${st.total})</span>`;
             top5List.appendChild(li);
         });
 
@@ -462,7 +457,7 @@
         bottom5List.innerHTML = "";
         students.slice(-5).reverse().forEach(st => {
             const li = document.createElement('li');
-            li.innerHTML = `<b>${st.name}</b> <span style="color:#b91c1c; font-weight:bold;">(${st.score}/${st.total})</span>`;
+            li.innerHTML = `<b class="clickable-student" data-student="${encodeURIComponent(st.name)}" onclick="openStudentReportFromAttr(this)">${st.name}</b> <span style="color:#b91c1c; font-weight:bold;">(${st.score}/${st.total})</span>`;
             bottom5List.appendChild(li);
         });
     }
