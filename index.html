@@ -20,6 +20,7 @@
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); color: var(--text-main); margin: 0; padding: 20px; }
         .dashboard { max-width: 1400px; margin: auto; }
 
+        /* تعديل القائمة المنسدلة لتكون احترافية وبخط أكبر وأبرز ومع الوقت والتاريخ الفعلي */
         .model-nav { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 25px; padding: 15px 20px; background: var(--card-bg); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); flex-wrap: wrap; border-top: 3px solid var(--accent); }
         .model-select-wrapper { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 300px; }
         .model-select-wrapper label { font-weight: bold; color: var(--accent); white-space: nowrap; font-size: 1.15rem; }
@@ -43,6 +44,7 @@
         
         .model-dropdown option { padding: 14px; font-size: 1.1rem; font-weight: 900; }
 
+        /* تصميم شاشة الوقت والتاريخ الفعلي */
         .live-clock-badge {
             background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
             border: 1px solid #86efac;
@@ -165,6 +167,7 @@
                 <option value="all">🌍 عرض الكل</option>
             </select>
         </div>
+        <!-- عرض الوقت والتاريخ الفعلي المحدث تلقائياً -->
         <div class="live-clock-badge" id="live-clock-display">
             🕒 جاري تحميل الوقت...
         </div>
@@ -330,6 +333,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const isViewOnly = urlParams.has('view');
 
+    // تحديث الوقت والتاريخ الفعلي فوراً وكل ثانية
     function updateLiveClock() {
         const now = new Date();
         const optionsDate = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
@@ -347,12 +351,11 @@
     updateLiveClock();
 
     function calculateStudentSkills(d, p) {
-        let validP = isNaN(p) ? 0 : p;
         if (d.sections && typeof d.sections === 'object') {
             return d.sections;
         }
 
-        let skills = { est: validP, ikm: validP, swh: validP, arb: validP, sah: validP, math: validP };
+        let skills = { est: p, ikm: p, swh: p, arb: p, sah: p, math: p };
 
         if (d.answers && Array.isArray(d.answers) && d.answers.length > 0) {
             let catStats = {
@@ -431,18 +434,14 @@
                     return;
                 }
 
-                // تحويل قيم الدرجات إلى أرقام وحماية القسمة على صفر لتجنب ظهور NaN
-                const score = Number(d.score) || 0;
-                const total = Number(d.total) || 0;
-                const p = total > 0 ? Math.round((score / total) * 100) : 0;
-                
+                const p = Math.round((d.score / d.total) * 100);
                 scores.push(p);
                 studentCount++;
 
                 studentsList.push({
-                    name: d.name || "غير محدد",
-                    score: score,
-                    total: total,
+                    name: d.name,
+                    score: d.score,
+                    total: d.total,
                     percentage: p
                 });
 
@@ -454,25 +453,22 @@
 
                 let s = calculateStudentSkills(d, p);
 
-                Object.keys(skillsSums).forEach(k => {
-                    let skillVal = (s[k] !== undefined && !isNaN(s[k])) ? s[k] : p;
-                    skillsSums[k] += skillVal;
-                });
+                Object.keys(skillsSums).forEach(k => skillsSums[k] += (s[k] !== undefined ? s[k] : p));
 
                 rows += `<tr>
-                    <td><strong>${d.name || 'بدون اسم'}</strong></td>
-                    <td style="color:var(--accent); font-weight:bold">${score}/${total}</td>
+                    <td><strong>${d.name}</strong></td>
+                    <td style="color:var(--accent); font-weight:bold">${d.score}/${d.total}</td>
                     ${['est','ikm','swh','arb','sah','math'].map(k => {
-                        let val = (s[k] !== undefined && !isNaN(s[k])) ? s[k] : p;
+                        let val = s[k] !== undefined ? s[k] : p;
                         return `<td>${val}%<div class="prog-circle"><div class="prog-fill" style="width:${val}\%; background:${val<60?'#ef4444':val<80?'#f59e0b':'#10b981'}"></div></div></td>`;
                     }).join('')}
                     <td>${actualModel}</td>
                     <td class="no-print">
-                        <button class="action-btn btn-level" data-student="${encodeURIComponent(d.name || '')}" onclick="openStudentReportFromAttr(this)">📊 المستوى</button>
+                        <button class="action-btn btn-level" data-student="${encodeURIComponent(d.name)}" onclick="openStudentReportFromAttr(this)">📊 المستوى</button>
                     </td>
                     <td class="no-print ${isViewOnly ? 'view-only-hide' : ''}">
                         <button class="action-btn btn-review" onclick="openReview('${d.id}')">👁 مراجعة</button>
-                        <button class="action-btn btn-edit-name" onclick="openEditNameModal('${d.id}', '${(d.name || '').replace(/'/g, "\\'")}')">✏️ تعديل</button>
+                        <button class="action-btn btn-edit-name" onclick="openEditNameModal('${d.id}', '${d.name}')">✏️ تعديل</button>
                         <button class="action-btn btn-delete" onclick="deleteDoc('${d.id}')">حذف</button>
                     </td>
                 </tr>`;
@@ -570,10 +566,7 @@
 
         studentRecords.forEach(rec => {
             let mName = rec.model_id || 'الجملة الاسمية';
-            let recScore = Number(rec.score) || 0;
-            let recTotal = Number(rec.total) || 0;
-            let pct = recTotal > 0 ? Math.round((recScore / recTotal) * 100) : 0;
-            
+            let pct = Math.round((rec.score / rec.total) * 100);
             let grade = getGradeInfo(pct);
             let formattedTime = formatDateTime(rec.time);
             
@@ -585,7 +578,7 @@
                 <tr>
                     <td style="padding:10px; border-bottom:1px solid #eee; text-align:right;"><b>${mName}</b></td>
                     <td style="padding:10px; border-bottom:1px solid #eee; text-align:center; color:#64748b; font-size:0.8rem;">${formattedTime}</td>
-                    <td style="padding:10px; border-bottom:1px solid #eee; text-align:center; color:var(--accent); font-weight:bold;">${recScore} من ${recTotal}</td>
+                    <td style="padding:10px; border-bottom:1px solid #eee; text-align:center; color:var(--accent); font-weight:bold;">${rec.score} من ${rec.total}</td>
                     <td style="padding:10px; border-bottom:1px solid #eee; text-align:center;"><span style="font-weight:bold; color:${grade.color}; padding:3px 8px; background:${grade.bg}; border-radius:12px;">${pct}% (${grade.text})</span></td>
                 </tr>
             `;
@@ -698,19 +691,19 @@
     async function openReview(docId) {
         const doc = await db.collection("alkfaeat_results").doc(docId).get();
         const data = doc.data();
-        document.getElementById('review-student-name').innerText = `مراجعة إجابات الطالب: ${data.name || ''}`;
+        document.getElementById('review-student-name').innerText = `مراجعة إجابات الطالب: ${data.name}`;
         const listContainer = document.getElementById('review-list');
         listContainer.innerHTML = "";
 
-        if (data && data.answers && data.answers.length > 0) {
+        if (data.answers && data.answers.length > 0) {
             data.answers.forEach((ans, index) => {
                 const isCorrect = ans.isCorrect;
                 const card = document.createElement('div');
                 card.className = `answer-card ${isCorrect ? 'ans-correct' : 'ans-wrong'}`;
                 card.innerHTML = `
-                    <strong>س ${index + 1}: ${ans.qText || ''}</strong><br>
-                    <span>إجابة الطالب: ${ans.studentAns || ''} ${isCorrect ? '✅' : '❌'}</span><br>
-                    ${!isCorrect ? `<span>الإجابة الصحيحة: ${ans.correctAns || ''}</span>` : ''}
+                    <strong>س ${index + 1}: ${ans.qText}</strong><br>
+                    <span>إجابة الطالب: ${ans.studentAns} ${isCorrect ? '✅' : '❌'}</span><br>
+                    ${!isCorrect ? `<span>الإجابة الصحيحة: ${ans.correctAns}</span>` : ''}
                 `;
                 listContainer.appendChild(card);
             });
@@ -764,6 +757,7 @@
         
         let sortedModels = Array.from(foundModels).sort();
         sortedModels.forEach((mId, index) => {
+            let bgColor = (index % 2 === 0) ? '#ffffff' : '#fdf6e2'; 
             let customStyle = (index % 2 === 0) 
                 ? `background-color: #ffffff; color: #1e293b; font-size: 1.1rem; font-weight: 900;` 
                 : `background-color: #fdf6e2; color: #991b1b; font-size: 1.1rem; font-weight: 900; border-bottom: 1px dashed #f87171; border-top: 1px dashed #f87171;`;
@@ -802,15 +796,11 @@
     }
 
     function updateSummary(s, l) {
-        // فلترة المصفوفة لحساب الأرقام الصحيحة فقط وحجب NaN
-        const validScores = s.filter(val => typeof val === 'number' && !isNaN(val));
-        
-        document.getElementById('count').innerText = validScores.length;
-        if(validScores.length > 0) {
-            const sum = validScores.reduce((a,b) => a + b, 0);
-            document.getElementById('avg').innerText = Math.round(sum / validScores.length) + "%";
-            document.getElementById('max').innerText = Math.max(...validScores) + "%";
-            document.getElementById('low').innerText = (l.acc || 0) + (l.weak || 0);
+        document.getElementById('count').innerText = s.length;
+        if(s.length > 0) {
+            document.getElementById('avg').innerText = Math.round(s.reduce((a,b)=>a+b,0)/s.length) + "%";
+            document.getElementById('max').innerText = Math.max(...s) + "%";
+            document.getElementById('low').innerText = l.acc + l.weak;
         } else {
             document.getElementById('avg').innerText = "0%";
             document.getElementById('max').innerText = "0%";
