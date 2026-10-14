@@ -331,7 +331,12 @@
     let currentFilteredQuery = '';
 
     const urlParams = new URLSearchParams(window.location.search);
+    const viewParam = urlParams.get('view');
     const isViewOnly = urlParams.has('view');
+
+    if (viewParam) {
+        selectedModel = viewParam;
+    }
 
     // تحديث الوقت والتاريخ الفعلي فوراً وكل ثانية
     function updateLiveClock() {
@@ -757,7 +762,6 @@
         
         let sortedModels = Array.from(foundModels).sort();
         sortedModels.forEach((mId, index) => {
-            let bgColor = (index % 2 === 0) ? '#ffffff' : '#fdf6e2'; 
             let customStyle = (index % 2 === 0) 
                 ? `background-color: #ffffff; color: #1e293b; font-size: 1.1rem; font-weight: 900;` 
                 : `background-color: #fdf6e2; color: #991b1b; font-size: 1.1rem; font-weight: 900; border-bottom: 1px dashed #f87171; border-top: 1px dashed #f87171;`;
@@ -782,7 +786,10 @@
     }
 
     function generateShareLink(modelId) {
-        const shareUrl = `${window.location.href.split('?')[0]}?view=${modelId}`;
+        // إذا كان العرض مخصصاً لنموذج معين أو تم الضغط على زر مشاركة النموذج، يتم اعتماد النموذج المحدد حالياً
+        const targetModel = (modelId && modelId !== 'all') ? modelId : selectedModel;
+        const shareUrl = `${window.location.href.split('?')[0]}?view=${targetModel}`;
+        
         document.getElementById('share-url').value = shareUrl;
         document.getElementById('qrcode').innerHTML = "";
         new QRCode(document.getElementById("qrcode"), { text: shareUrl, width: 150, height: 150 });
@@ -849,7 +856,7 @@
         });
     }
 
-    setMod('all');
+    setMod(selectedModel);
 </script>
 </body>
 </html>
