@@ -20,7 +20,6 @@
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); color: var(--text-main); margin: 0; padding: 20px; }
         .dashboard { max-width: 1400px; margin: auto; }
 
-        /* تعديل القائمة المنسدلة لتكون احترافية وبخط أكبر وأبرز ومع الوقت والتاريخ الفعلي */
         .model-nav { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 25px; padding: 15px 20px; background: var(--card-bg); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); flex-wrap: wrap; border-top: 3px solid var(--accent); }
         .model-select-wrapper { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 300px; }
         .model-select-wrapper label { font-weight: bold; color: var(--accent); white-space: nowrap; font-size: 1.15rem; }
@@ -44,7 +43,6 @@
         
         .model-dropdown option { padding: 14px; font-size: 1.1rem; font-weight: 900; }
 
-        /* تصميم شاشة الوقت والتاريخ الفعلي */
         .live-clock-badge {
             background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
             border: 1px solid #86efac;
@@ -154,6 +152,30 @@
         .close-btn { background: var(--text-main); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; margin-top: 15px; }
         .view-only-hide { display: none !important; }
 
+        /* تنسيق شهادة الشكر والتقدير للمتميزين */
+        .certificate-card {
+            background: linear-gradient(135deg, #ffffff 0%, #fffdf0 100%);
+            border: 6px double #d97706;
+            border-radius: 20px;
+            padding: 25px;
+            margin: 15px 0;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(217, 119, 6, 0.12);
+        }
+        .certificate-badge { font-size: 2.8rem; margin-bottom: 5px; }
+        .certificate-title { font-size: 1.6rem; font-weight: 900; color: #b45309; margin: 5px 0; }
+        .certificate-body { font-size: 1.05rem; line-height: 1.8; color: #334155; margin: 15px 0; }
+        .certificate-signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px dashed #cbd5e1;
+            font-weight: bold;
+            font-size: 0.95rem;
+            color: #1e293b;
+        }
+
         @media print { .no-print { display: none !important; } }
     </style>
 </head>
@@ -167,7 +189,6 @@
                 <option value="all">🌍 عرض الكل</option>
             </select>
         </div>
-        <!-- عرض الوقت والتاريخ الفعلي المحدث تلقائياً -->
         <div class="live-clock-badge" id="live-clock-display">
             🕒 جاري تحميل الوقت...
         </div>
@@ -289,6 +310,9 @@
 
         <div id="trend-indicator-box"></div>
 
+        <!-- حاوية شهادة التميز عند تحقيق درجة 99 أو 100 -->
+        <div id="certificate-container"></div>
+
         <div class="report-chart-box">
             <canvas id="studentProgressChart"></canvas>
         </div>
@@ -338,7 +362,6 @@
         selectedModel = viewParam;
     }
 
-    // تحديث الوقت والتاريخ الفعلي فوراً وكل ثانية
     function updateLiveClock() {
         const now = new Date();
         const optionsDate = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
@@ -609,6 +632,43 @@
             indicatorBox.innerHTML = `<span class="trend-badge" style="background:${singleGrade.bg}; color:${singleGrade.color};">📌 تصنيف المستوى: ${singleGrade.text} (بانتظار أدائه في النماذج القادمة)</span>`;
         }
 
+        // فحص أعلى نتيجة للطالب لإظهار شهادة التقدير لمن حقق 99 أو 100
+        let maxRecord = studentRecords.reduce((prev, current) => {
+            let prevPct = (prev.score / prev.total) * 100;
+            let currPct = (current.score / current.total) * 100;
+            return (currPct > prevPct) ? current : prev;
+        });
+
+        let maxPct = Math.round((maxRecord.score / maxRecord.total) * 100);
+        const certContainer = document.getElementById('certificate-container');
+
+        if (maxPct >= 99) {
+            certContainer.innerHTML = `
+                <div class="certificate-card">
+                    <div class="certificate-badge">🏆🎖️</div>
+                    <div class="certificate-title">شهادة شكر وتقدير وتفوق</div>
+                    <div class="certificate-body">
+                        تتقدم إدارة **ثانوية الأمير عبدالمجيد** بخالص الشكر والتقدير للطالب المتميز:<br>
+                        <span style="font-size: 1.35rem; color: #0284c7; font-weight: bold; display:inline-block; margin: 6px 0;">${studentName}</span><br>
+                        وذلك لحصوله على درجة التميز العالي <b>(${maxRecord.score} من ${maxRecord.total})</b> بنسبة <b>${maxPct}%</b> في مادة الكفايات اللغوية.<br>
+                        <i style="color: #64748b; font-size: 0.95rem;">«سائلين الله تعالى له دوام التوفيق والنجاح والعطاء المستمر»</i>
+                    </div>
+                    <div class="certificate-signatures">
+                        <div>
+                            <span>معلم المادة</span><br>
+                            <span style="color:#0284c7;">أ / عبدالعزيز الفيفي ثانوية الأمير عبدالمجيد 😉</span>
+                        </div>
+                        <div>
+                            <span>مدير المدرسة</span><br>
+                            <span style="color:#b45309;">د / عبدالله الشهري</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            certContainer.innerHTML = "";
+        }
+
         document.getElementById('student-report-modal').style.display = 'flex';
 
         setTimeout(() => {
@@ -786,7 +846,6 @@
     }
 
     function generateShareLink(modelId) {
-        // إذا كان العرض مخصصاً لنموذج معين أو تم الضغط على زر مشاركة النموذج، يتم اعتماد النموذج المحدد حالياً
         const targetModel = (modelId && modelId !== 'all') ? modelId : selectedModel;
         const shareUrl = `${window.location.href.split('?')[0]}?view=${targetModel}`;
         
