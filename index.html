@@ -73,7 +73,6 @@
 
         .dashboard { max-width: 1400px; margin: auto; display: none; }
 
-        /* تعديل القائمة المنسدلة لتكون احترافية وبخط أكبر وأبرز ومع الوقت والتاريخ الفعلي */
         .model-nav { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 25px; padding: 15px 20px; background: var(--card-bg); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); flex-wrap: wrap; border-top: 3px solid var(--accent); }
         .model-select-wrapper { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 300px; }
         .model-select-wrapper label { font-weight: bold; color: var(--accent); white-space: nowrap; font-size: 1.15rem; }
@@ -97,7 +96,6 @@
         
         .model-dropdown option { padding: 14px; font-size: 1.1rem; font-weight: 900; }
 
-        /* تصميم شاشة الوقت والتاريخ الفعلي */
         .live-clock-badge {
             background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
             border: 1px solid #86efac;
@@ -120,8 +118,10 @@
         .header h1 { margin: 0; color: var(--accent); font-size: 1.8rem; line-height: 1.3; }
         .header-sub-title { font-size: 1.4rem; color: #0284c7; font-weight: bold; margin-top: 4px; display: block; }
 
-        .action-buttons { display: flex; gap: 10px; align-items: center; }
+        .action-buttons { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         .btn-share { background: #0ea5e9; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .btn-archive { background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-archive:hover { background: #059669; }
         .bulk-delete-btn { background: #fee2e2; color: var(--danger); border: 1px solid #fecaca; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
 
         .stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
@@ -207,7 +207,6 @@
         .close-btn { background: var(--text-main); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; margin-top: 15px; }
         .view-only-hide { display: none !important; }
 
-        /* تصميم شهادة الشكر والتقدير للمتميزين */
         .certificate-card {
             background: linear-gradient(135deg, #ffffff 0%, #fffdf0 100%);
             border: 6px double #d97706;
@@ -255,7 +254,6 @@
                 <option value="all">🌍 عرض الكل</option>
             </select>
         </div>
-        <!-- عرض الوقت والتاريخ الفعلي المحدث تلقائياً -->
         <div class="live-clock-badge" id="live-clock-display">
             🕒 جاري تحميل الوقت...
         </div>
@@ -268,6 +266,7 @@
             <p style="color: var(--text-sub); margin: 8px 0 0;">متابعة دقيقة لمستويات التميز والإخفاق - ثانوية الأمير عبدالمجيد 😉</p>
         </div>
         <div class="action-buttons no-print" id="action-area">
+            <button class="btn-archive" onclick="archiveAndResetDashboard()">📦 أرشفة الصفحة وفتح جديدة</button>
             <button class="btn-share" onclick="generateShareLink(selectedModel)">🔗 مشاركة اللوحة</button>
             <button class="model-btn" style="background:#1e293b; color:white" onclick="window.print()">🖨️ طباعة</button>
         </div>
@@ -376,8 +375,6 @@
         </div>
 
         <div id="trend-indicator-box"></div>
-
-        <!-- حاوية شهادة الشكر والتفوق للطلبة المتميزين (90% فأعلى) -->
         <div id="certificate-container"></div>
 
         <div class="report-chart-box">
@@ -445,8 +442,53 @@
         }
     }
 
-    // إذا كان الرابط للعرض فقط (?view=...) أو للدخول المباشر، يمكننا التحقق أو طلب الباسورد دائماً للأمان التام:
-    // هنا الباب مغلق دائماً حتى يتم إدخال الرقم السري بدقة.
+    // وظيفة الأرشيف وفتح صفحة جديدة
+    async function archiveAndResetDashboard() {
+        if (isViewOnly) return;
+        
+        if (globalSnapshotData.length === 0) {
+            alert("لا توجد بيانات حالية لأرشفتها.");
+            return;
+        }
+
+        if (confirm("هل تريد أرشفة محتوى الصفحة الحالي وتنزيله كملف حفظ، ثم تصفير اللوحة لفتح صفحة جديدة؟")) {
+            // 1. إنشاء نسخة أرشيف HTML وتحميلها تلقائياً
+            const htmlContent = document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `أرشيف_منصة_الكفايات_${selectedModel}_${dateStr}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // 2. مسح قاعدة البيانات (تصفير اللوحة الحالية لتبدأ صفحة جديدة نظيفة)
+            try {
+                const batchSize = 400; // مسح على دفعات لتجنب حدود فايربيس
+                const query = db.collection("alkfaeat_results");
+                if (selectedModel !== 'all') {
+                    // إذا كان نموذج محدد
+                    const snap = await query.where("model_id", "==", selectedModel).get();
+                    const batch = db.batch();
+                    snap.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                } else {
+                    // إذا كان عرض الكل
+                    const snap = await query.get();
+                    const batch = db.batch();
+                    snap.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                }
+                alert("تم حفظ الأرشيف بنجاح وتصفير اللوحة لتبدأ صفحة جديدة نظيفة!");
+            } catch (error) {
+                console.error("خطأ أثناء تصفير البيانات: ", error);
+                alert("تم تنزيل ملف الأرشيف، ولكن حدث خطأ أثناء مسح قاعدة البيانات.");
+            }
+        }
+    }
 
     // تحديث الوقت والتاريخ الفعلي فوراً وكل ثانية
     function updateLiveClock() {
@@ -881,6 +923,7 @@
             subTitle.innerText = "الكفايات اللغوية";
             if(!isViewOnly) {
                 actionArea.innerHTML = `
+                    <button class="btn-archive" onclick="archiveAndResetDashboard()">📦 أرشفة الصفحة وفتح جديدة</button>
                     <button class="btn-share" onclick="generateShareLink('all')">🔗 مشاركة اللوحة</button>
                     <button class="model-btn" style="background:#1e293b; color:white" onclick="window.print()">🖨️ طباعة</button>`;
             } else {
@@ -890,6 +933,7 @@
             subTitle.innerText = `تحليل نموذج (${m})`;
             if(!isViewOnly) {
                 actionArea.innerHTML = `
+                    <button class="btn-archive" onclick="archiveAndResetDashboard()">📦 أرشفة الصفحة وفتح جديدة</button>
                     <button class="btn-share" onclick="generateShareLink('${m}')">🔗 مشاركة النموذج</button>
                     <button class="bulk-delete-btn" onclick="deleteEntireModel('${m}')">🗑️ تصفير النموذج</button>
                     <button class="model-btn" style="background:#1e293b; color:white" onclick="window.print()">🖨️ طباعة</button>`;
