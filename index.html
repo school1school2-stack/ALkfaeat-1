@@ -18,7 +18,60 @@
         }
 
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); color: var(--text-main); margin: 0; padding: 20px; }
-        .dashboard { max-width: 1400px; margin: auto; }
+        
+        /* شاشة القفل والبوابة السرية */
+        #lock-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .lock-box {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 25px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            border-top: 5px solid var(--accent);
+        }
+        .lock-box h2 { color: var(--accent); margin-top: 0; margin-bottom: 10px; }
+        .lock-box p { color: var(--text-sub); font-size: 0.95rem; margin-bottom: 20px; }
+        .lock-box input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 1.2rem;
+            text-align: center;
+            outline: none;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            transition: 0.3s;
+            letter-spacing: 2px;
+        }
+        .lock-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.15); }
+        .lock-box button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.3s;
+        }
+        .lock-box button:hover { background: #0369a1; }
+        #lock-error { color: var(--danger); font-size: 0.85rem; margin-top: 10px; display: none; }
+
+        .dashboard { max-width: 1400px; margin: auto; display: none; }
 
         /* تعديل القائمة المنسدلة لتكون احترافية وبخط أكبر وأبرز ومع الوقت والتاريخ الفعلي */
         .model-nav { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 25px; padding: 15px 20px; background: var(--card-bg); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); flex-wrap: wrap; border-top: 3px solid var(--accent); }
@@ -183,7 +236,18 @@
 </head>
 <body>
 
-<div class="dashboard">
+<!-- شاشة القفل والبوابة السرية -->
+<div id="lock-screen">
+    <div class="lock-box">
+        <h2>🔒 بوابة التحكم المحمية</h2>
+        <p>أدخل الرقم السري الخاص بك لعرض لوحة التحليل الذكي:</p>
+        <input type="password" id="secret-pass-input" placeholder="••••••••" onkeydown="if(event.key === 'Enter') checkSecretCode()">
+        <button onclick="checkSecretCode()">دخول اللوحة</button>
+        <div id="lock-error">❌ الرقم السري غير صحيح، حاول مرة أخرى.</div>
+    </div>
+</div>
+
+<div class="dashboard" id="main-dashboard">
     <div class="model-nav no-print" id="nav-bar">
         <div class="model-select-wrapper">
             <label for="model-dropdown">📁 اختر النموذج:</label>
@@ -364,6 +428,25 @@
     if (viewParam) {
         selectedModel = viewParam;
     }
+
+    // التحقق من الرقم السري
+    function checkSecretCode() {
+        const inputVal = document.getElementById('secret-pass-input').value.trim();
+        const errorEl = document.getElementById('lock-error');
+
+        if (inputVal === "Aztlg1512") {
+            document.getElementById('lock-screen').style.display = 'none';
+            document.getElementById('main-dashboard').style.display = 'block';
+            setMod(selectedModel);
+        } else {
+            errorEl.style.display = 'block';
+            document.getElementById('secret-pass-input').value = '';
+            document.getElementById('secret-pass-input').focus();
+        }
+    }
+
+    // إذا كان الرابط للعرض فقط (?view=...) أو للدخول المباشر، يمكننا التحقق أو طلب الباسورد دائماً للأمان التام:
+    // هنا الباب مغلق دائماً حتى يتم إدخال الرقم السري بدقة.
 
     // تحديث الوقت والتاريخ الفعلي فوراً وكل ثانية
     function updateLiveClock() {
@@ -596,7 +679,6 @@
         document.getElementById('last-test-time').innerText = formatDateTime(lastRecord.time);
         document.getElementById('next-test-time').innerText = getNextTestTime(lastRecord.time);
 
-        // حساب المجموع التراكمي للدرجات والنسبة الكلية
         let totalScoreSum = 0;
         let totalMaxSum = 0;
 
@@ -643,7 +725,6 @@
             indicatorBox.innerHTML = `<span class="trend-badge" style="background:${singleGrade.bg}; color:${singleGrade.color};">📌 تصنيف المستوى: ${singleGrade.text} (بانتظار أدائه في النماذج القادمة)</span>`;
         }
 
-        // فحص النسبة التراكمية الإجمالية لمعرفة استحقاق الشهادة (90% فأعلى)
         let cumulativePct = totalMaxSum > 0 ? Math.round((totalScoreSum / totalMaxSum) * 100) : 0;
         const certContainer = document.getElementById('certificate-container');
 
@@ -920,8 +1001,6 @@
             options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
     }
-
-    setMod(selectedModel);
 </script>
 </body>
 </html>
